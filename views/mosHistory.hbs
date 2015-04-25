@@ -1,0 +1,136 @@
+<h4>Historical Scores</h4>
+<nav class="navbar navbar-default navbar-fixed-top ">
+    <div class="container">
+        <div class="dropdown">
+            <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-expanded="true">
+                Select Mon/Yr
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu btn-block" role="menu" aria-labelledby="dropdownMenu1"
+                style="height: auto;max-height: 450px;overflow-x: hidden;">
+                {{#each yrmons}}
+                    <li role="presentation"><a onclick="updateTable($(this).text())" role="menuitem" tabindex="-1" href="#">{{this}}</a></li>
+                {{/each}}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+</p>
+
+
+<div class="ct-chart"></div>
+
+
+
+
+
+<script>
+    var chartdata = {series:[]};
+    var timehold = [];
+    $.ajax({
+        url: "/api/history/0311",
+        success: function(res){
+            console.log(res)
+            var datahold = [];
+
+            for (var i in res) {
+                if (res[i].type == "ACTIVE SERGEANT" &&  !isNaN(res[i].score)) {
+                    datahold.push(res[i].score);
+                    timehold.push(res[i].yrmon);
+                }
+                }
+            chartdata.series.push({
+                name: 'Score',
+                data: datahold
+            })
+            buildChart()
+            }
+
+
+    })
+
+
+function buildChart () {
+
+    new Chartist.Line('.ct-chart', {
+                labels: timehold,
+                series: chartdata.series
+            },
+            {
+                axisX: {
+                    showGrid: false,
+                    showLabel: false
+                    //scaleMinSpace: 40
+                },
+                reverseData: false,
+                width: 1400
+                //lineSmooth: true
+            }
+    );
+
+
+    var $chart = $('.ct-chart');
+
+    var $toolTipch = $chart
+            .append('<div class="tooltipch"></div>')
+            .find('.tooltip')
+            .hide();
+
+    $chart.on('hover', '.ct-point', function () {
+        var $point = $(this),
+                value = $point.attr('ct:value'),
+                seriesName = $point.parent().attr('ct:series-name');
+        $toolTipch.html('<br>' + value).show();
+    });
+
+    $chart.on('mouseleave', '.ct-point', function () {
+        $toolTipch.hide();
+    });
+
+    $chart.on('mousemove', function (event) {
+        $toolTipch.css({
+            left: (event.offsetX || event.originalEvent.layerX) - $toolTipch.width() / 2 - 10,
+            top: (event.offsetY || event.originalEvent.layerY) - $toolTipch.height() - 40
+        });
+    });
+}
+
+    function updateTable(date) {
+        $("#scoresBody").empty();
+        var yrmonsplit = date.split('-');
+
+
+        $.ajax({
+            url: "/api/date/"+yrmonsplit[1]+"/"+yrmonsplit[0],
+            success: function(res){
+                console.log(res)
+                for (var i in res) {
+                    var winning = (parseInt(res[i].score) < 1575) ? 'class="success"' : '';
+                    var winning = (parseInt(res[i].score) > 1755) ? 'class="danger"' : winning;
+                    var $row = $('<tr>'+
+                    '<td>'+res[i].yrmon+'</td>'+
+                    '<td>'+res[i].mos+'</td>'+
+                    '<td '+winning+'>'+res[i].score+'</td>'+
+                    '<td>'+res[i].type+'</td>'+
+                    '</tr>');
+                    $("#scoresBody").append($row)
+
+                    if ((i > 0) && (i % 100 == 0)) {
+                        $("#scoresBody").append($('<tr><td align="center" colspan="4" class="addTarget">'+
+                        '<iframe src="javascript:(function () { var goTo = \'https://b.admedia.com/banner.php?id=Ijs_ITY&color=orange&subid=[SUBID]&ip=[IP]&ua=[UA]&transparency=1&highlight=1&dittoimage=0&style=1&size=468x60&page_url=[ENCODED_PAGE_URL]&underline=true&border=false&heading=Popular Searches&text_size=14&ref=\'+escape(parent.window.document.referrer)+\'&bpage=\' + escape(document.referrer); this.location=goTo; })()" width="468" height="60" frameborder="0" scrolling="no" allowtransparency="yes"></iframe>'+
+                        '</td></tr> '));
+//                        $("#gads").find('ins').appendTo('.addTarget')
+                    }
+                }
+
+            }
+        })
+
+
+
+    }
+
+
+
+</script>
